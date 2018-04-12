@@ -15,3 +15,17 @@ Storms and other severe weather events can cause both public health and economic
 
 This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
 
+## Synopsis
+
+
+```r
+if (!require("pacman")) install.packages("pacman")
+```
+
+```
+## Loading required package: pacman
+```
+
+```r
+pacman::p_load(knitr, dplyr, ggplot2, tidyr, hexbin, timeDate)
+```
