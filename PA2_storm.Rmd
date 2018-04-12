@@ -19,7 +19,71 @@ This project involves exploring the U.S. National Oceanic and Atmospheric Admini
 
 ## Synopsis
 
+We address the following questions through analysis of the NOAA Storm Database:
+
+1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+2. Across the United States, which types of events have the greatest economic consequences?
+
+
+
+## Data Processing
+
+First, we load the required packages and install them first if they are not available:
+
 ```{r}
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(knitr, dplyr, ggplot2, tidyr, hexbin, timeDate)
 ```
+
+Next we download and unzip the data file to read in the dataset:
+
+```{r, cache=TRUE}
+destfile <- 'repdata%2Fdata%2FStormData.csv.bz2'
+url <- 'https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2'
+
+if (!file.exists(destfile))
+  download.file(url, destfile, method = "auto")
+
+df <- read.csv(destfile)
+```
+
+We will explore the dataset using the `head()` and `str()` functions:
+
+```{r}
+head(df)
+str(df)
+```
+
+There are many variables present in this dataset, not all of which will be relevant to our analysis. We recap our goal:
+
+1. To find out which **EVTYPE**(-s) is most harmful to **population health** across the US
+2. To find out which **EVTYPE**(-s) have the greatest **economic consequences**
+
+Therefore, we will narrow down the number of variables to those that are related to **EVTYPE**, **population health** and **economic consequences**.
+
+Population health: 
+* `FATALITIES`
+* `INJURIES`
+
+Economic consequences:
+* `PROPDMG`
+* `PROPDMGEXP`
+* `CROPDMG`
+* `CROPDMGEXP`
+
+We will select these variables from the original dataset in addition to `EVTYPE` for obvious reasons, and `STATE__` in order to analyse the spatial variation of population health and economic consequences:
+
+```{r}
+df_filtered <- select(df, EVTYPE, STATE__, FATALITIES, INJURIES, 
+                      PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
+```
+
+Next we examine the variable `EVTYPE`:
+
+```{r}
+unique(df_filtered$EVTYPE)
+```
+
+## Results
+
+## Conclusion
