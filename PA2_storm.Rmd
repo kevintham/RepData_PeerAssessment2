@@ -62,14 +62,16 @@ There are many variables present in this dataset, not all of which will be relev
 Therefore, we will narrow down the number of variables to those that are related to **EVTYPE**, **population health** and **economic consequences**.
 
 Population health: 
-* `FATALITIES`
-* `INJURIES`
 
-Economic consequences:
-* `PROPDMG`
-* `PROPDMGEXP`
-* `CROPDMG`
-* `CROPDMGEXP`
+* `FATALITIES`
+* `INJURIES` 
+
+Economic consequences: 
+
+* `PROPDMG` 
+* `PROPDMGEXP` 
+* `CROPDMG` 
+* `CROPDMGEXP` 
 
 We will select these variables from the original dataset in addition to `EVTYPE` for obvious reasons, and `STATE__` in order to analyse the spatial variation of population health and economic consequences:
 
@@ -78,10 +80,56 @@ df_filtered <- select(df, EVTYPE, STATE__, FATALITIES, INJURIES,
                       PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
 ```
 
-Next we examine the variable `EVTYPE`:
+The proportion of missing values in the dataframe is first determined for the relevant variables:
 
 ```{r}
+mean(is.na(df_filtered))
+```
+
+Surprisingly there is a complete absence of missing variables.
+
+Next we examine the variable `EVTYPE`:
+
+```{r, results='hide'}
 unique(df_filtered$EVTYPE)
+```
+
+It is clear that there are many duplicates, errors and variants present in the variable `EVTYPE`. Therefore we will proceed by cleaning up this variable, using regular expressions to substitute variable names with the correct variable.
+
+```{r}
+event <- df_filtered$EVTYPE
+event <- gsub('.*TSTM.*', 'THUNDERSTORM WIND', event, ignore.case=TRUE)
+event <- gsub('.*THUNDER.*', 'THUNDERSTORM WIND', event, ignore.case=TRUE)
+event <- gsub('.*THUND.*', 'THUNDERSTORM WIND', event, ignore.case=TRUE)
+event <- gsub('.*micro.*', 'THUNDERSTORM WIND', event, ignore.case=TRUE)
+event <- gsub('.*SPOUT.*', 'WATERSPOUT', event, ignore.case=TRUE)
+event <- gsub('.*TORNADO.*', 'TORNADO', event, ignore.case=TRUE)
+event <- gsub('^HIGH WIND.*', 'HIGH WIND', event, ignore.case=TRUE)
+event <- gsub('.*AVALANCHE.*', 'AVALANCHE', event, ignore.case=TRUE)
+event <- gsub('.*BLIZZARD.*', 'BLIZZARD', event, ignore.case=TRUE)
+event <- gsub('.*SNOW.*', 'HEAVY SNOW', event, ignore.case=TRUE)
+event <- gsub('.*HURRICANE.*', 'HURRICANE/TYPHOON', event, ignore.case=TRUE)
+event <- gsub('.*TYPHOON.*', 'HURRICANE/TYPHOON', event, ignore.case=TRUE)
+event <- gsub('.*HEAT.*', 'HEAT', event, ignore.case=TRUE)
+event <- gsub('.*WARM.*', 'HEAT', event, ignore.case=TRUE)
+event <- gsub('.*HIGH TEMP.*', 'HEAT', event, ignore.case=TRUE)
+event <- gsub('.*COLD.*', 'EXTREME COLD/WIND CHILL', event, ignore.case=TRUE)
+event <- gsub('.*HAIL.*', 'HAIL', event, ignore.case=TRUE)
+event <- gsub('.*flash.flood.*', 'FLASH FLOOD', event, ignore.case=TRUE)
+event <- gsub('.*flash.*', 'FLASH FLOOD', event, ignore.case=TRUE)
+event <- gsub('.*LIGHTNING.*', 'LIGHTNING', event, ignore.case=TRUE)
+event <- gsub('(?<!FLASH )FLOOD.*', 'FLOOD', event, ignore.case=TRUE, perl=TRUE)
+event <- gsub('.*FLOOD.*', 'FLOOD', event, ignore.case=TRUE)
+event <- gsub('.*FUNNEL.*', 'FUNNEL CLOUD', event, ignore.case=TRUE)
+event <- gsub('.*FIRE.*', 'WILDFIRE', event, ignore.case=TRUE)
+event <- gsub('.*TROPICAL STORM.*', 'TROPICAL STORM', event, ignore.case=TRUE)
+event <- gsub('.*CURRENT.*', 'RIP CURRENT', event, ignore.case=TRUE)
+event <- gsub('.*DRY.*', 'DROUGHT', event, ignore.case=TRUE)
+event <- gsub('(?<!FREEZING )RAIN.*', 'HEAVY RAIN', event, ignore.case=TRUE, perl=TRUE)
+event <- gsub('.*RAIN.*', 'HEAVY RAIN', event, ignore.case=TRUE)
+
+table(grep('(?<!freezing )rain',event,ignore.case=TRUE,value=TRUE, perl=TRUE))
+unique(event)
 ```
 
 ## Results
