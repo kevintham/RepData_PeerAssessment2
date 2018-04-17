@@ -350,6 +350,28 @@ With these steps complete, we are ready to present our results.
 ## Results
 
 We select the top 10 event types that contribute the most harm to population health.
+                       
+
+```r
+ttheme <- ttheme_default(core=list(bg_params=list(col=NA)), 
+                         colhead=list(bg_params=list(col=NA)))
+
+fat_table <- tableGrob(fatalities, row=NULL, cols=c('Weather Event', 'No. of Fatalities'),
+                                                    theme=ttheme)
+grid.draw(fat_table)
+```
+
+<img src="PA2_storm_files/figure-html/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
+
+
+```r
+inj_table <- tableGrob(injuries, row=NULL, cols=c('Weather Event', 'No. of Injuries'),
+                       theme=ttheme)
+
+grid.draw(inj_table)
+```
+
+<img src="PA2_storm_files/figure-html/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
 
 
 ```r
@@ -366,7 +388,7 @@ plottitle <- textGrob(
   'Fig. 1: Top 10 events harmful to U.S. population health (1950-2011)', just='centre')
 
 g1$widths[4] <- unit(3,"null")
-g <- gtable_rbind(g1, g2, size='first')
+g <- gtable_rbind(g1, g2, size='max')
 g <- gtable_add_rows(g, grobHeight(plottitle)+unit(2,"mm"), pos=0)
 g <- gtable_add_grob(g, plottitle, 1, 1, r=7)
 
@@ -374,7 +396,30 @@ grid.newpage()
 grid.draw(g)
 ```
 
-![](PA2_storm_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+<img src="PA2_storm_files/figure-html/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
+
+
+```r
+ttheme <- ttheme_default(core=list(bg_params=list(col=NA)), 
+                         colhead=list(bg_params=list(col=NA)))
+
+propdmg_table <- tableGrob(propdmg, row=NULL, 
+                           cols=c('Weather Event', 'Property Damage (Billion USD)'), 
+                           theme=ttheme)
+grid.draw(propdmg_table)
+```
+
+<img src="PA2_storm_files/figure-html/unnamed-chunk-16-1.png" style="display: block; margin: auto;" />
+
+
+```r
+cropdmg_table <- tableGrob(cropdmg, row=NULL, 
+                       cols=c('Weather Event', 'Crop Damage (Billion USD)'),
+                       theme=ttheme)
+grid.draw(cropdmg_table)
+```
+
+<img src="PA2_storm_files/figure-html/unnamed-chunk-17-1.png" style="display: block; margin: auto;" />
 
 
 ```r
@@ -383,15 +428,15 @@ l1 <- ggplot(propdmg, aes(x=reorder(EVTYPE, PROPDMG), y=PROPDMG)) +
   labs(x="Weather Event", y="Property Damage (Billion USD)")
 l2 <- ggplot(cropdmg, aes(x=reorder(EVTYPE, CROPDMG), y=CROPDMG)) +
   geom_bar(stat="identity") + theme(aspect.ratio=1.) + coord_flip() +
-  labs(x="Weather Event", y="Crop Damage")
+  labs(x="Weather Event", y="Crop Damage (Billion USD)")
 
 k1 <- ggplotGrob(l1)
 k2 <- ggplotGrob(l2)
 plottitle2 <- textGrob(
   'Fig. 2: Top 10 events harmful to U.S. economy (1950-2011)', just='centre')
 
-g1$widths[4] <- unit(3,"null")
-k <- gtable_rbind(k1, k2, size='first')
+k1$widths[4] <- unit(3,"null")
+k <- gtable_rbind(k1, k2, size='max')
 k <- gtable_add_rows(k, grobHeight(plottitle2)+unit(2,"mm"), pos=0)
 k <- gtable_add_grob(k, plottitle2, 1, 1, r=7)
 
@@ -399,6 +444,6 @@ grid.newpage()
 grid.draw(k)
 ```
 
-![](PA2_storm_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
+<img src="PA2_storm_files/figure-html/unnamed-chunk-18-1.png" style="display: block; margin: auto;" />
 
 ## Conclusion
