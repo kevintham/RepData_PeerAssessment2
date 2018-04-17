@@ -6,3 +6,6 @@ ggplot2
 tidyr
 hexbin
 timeDate
+gridExtra
+gtable
+bindrcpp

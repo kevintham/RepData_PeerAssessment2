@@ -233,7 +233,7 @@ event <- gsub('.*dust.*', 'DUST STORM', event, ignore.case=TRUE)
 df_filtered$EVTYPE <- event
 ```
 
-Having completed the cleaning of the data, we will split the dataset into two parts, one to determine the effect of these weather events on human health and the other two determine their effect on the economy.
+Having completed the cleaning of the data, we will split the dataset into two parts, one to determine the effect of these weather events on human health and the other to determine their effect on the economy. The portion related to human health is then further split into two portions, one describing human fatalities and one describing human injuries. 
 
 
 ```r
@@ -263,51 +263,12 @@ injuries <- health %>%
 ## Selecting by INJURIES
 ```
 
-```r
-fatalities
-```
-
-```
-## # A tibble: 10 x 2
-##    EVTYPE                  FATALITIES
-##    <chr>                        <dbl>
-##  1 TORNADO                       5633
-##  2 HEAT                          3178
-##  3 FLOOD                         1525
-##  4 LIGHTNING                      817
-##  5 THUNDERSTORM WIND              759
-##  6 RIP CURRENT                    577
-##  7 EXTREME COLD/WIND CHILL        436
-##  8 HIGH WIND                      293
-##  9 AVALANCHE                      224
-## 10 WINTER STORM                   206
-```
-
-```r
-injuries
-```
-
-```
-## # A tibble: 10 x 2
-##    EVTYPE            INJURIES
-##    <chr>                <dbl>
-##  1 TORNADO              91364
-##  2 THUNDERSTORM WIND     9573
-##  3 HEAT                  9243
-##  4 FLOOD                 8604
-##  5 LIGHTNING             5231
-##  6 ICE STORM             1975
-##  7 WILDFIRE              1608
-##  8 HIGH WIND             1471
-##  9 HAIL                  1371
-## 10 HURRICANE/TYPHOON     1333
-```
-
 Next we can examine the variables `PROPDMGEXP` and `CROPDMGEXP`:
 
 
 ```r
-unique(df_filtered$PROPDMGEXP)
+economic <- df_filtered %>% select(EVTYPE, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
+unique(economic$PROPDMGEXP)
 ```
 
 ```
@@ -316,13 +277,75 @@ unique(df_filtered$PROPDMGEXP)
 ```
 
 ```r
-unique(df_filtered$CROPDMGEXP)
+unique(economic$CROPDMGEXP)
 ```
 
 ```
 ## [1]   M K m B ? 0 k 2
 ## Levels:  ? 0 2 B k K m M
 ```
+
+The variables `PROPDMGEXP` and `CROPDMGEXP` denote the exponent that is meant to be multiplied with `PROPDMG` and `CROPDMG` respectively in order to obtain the actual values of property and crop damag. Therefore in order to proceed it is required to transform the values under `PROPDMGEXP` and `CROPDMGEXP` to their actual numerical values.
+
+
+```r
+economic$PROPDMGEXP <- with(economic, ifelse(PROPDMGEXP=='H'|PROPDMGEXP=='h', 1e2,
+                                      ifelse(PROPDMGEXP=='K'|PROPDMGEXP=='k', 1e3,
+                                      ifelse(PROPDMGEXP=='M'|PROPDMGEXP=='m', 1e6,
+                                      ifelse(PROPDMGEXP=='B'|PROPDMGEXP=='b', 1e9, 
+                                      ifelse(grepl('[0-8]',PROPDMGEXP), 1e1,
+                                      ifelse(PROPDMGEXP=='+', 1e0, 0)))))))
+
+economic$CROPDMGEXP <- with(economic, ifelse(CROPDMGEXP=='H'|CROPDMGEXP=='h', 1e2,
+                                      ifelse(CROPDMGEXP=='K'|CROPDMGEXP=='k', 1e3,
+                                      ifelse(CROPDMGEXP=='M'|CROPDMGEXP=='m', 1e6,
+                                      ifelse(CROPDMGEXP=='B'|CROPDMGEXP=='b', 1e9,
+                                      ifelse(grepl('[0-8]',CROPDMGEXP), 1e1,
+                                      ifelse(CROPDMGEXP=='+', 1e0, 0)))))))
+
+economic$PROPDMG <- economic$PROPDMG * economic$PROPDMGEXP 
+economic$CROPDMG <- economic$CROPDMG * economic$CROPDMGEXP
+```
+
+Similar to before, the dataset `economic` is split into two parts, one to describe property damage and the other to describe crop damage:
+
+
+```r
+economic <- economic %>% 
+  select(EVTYPE, PROPDMG, CROPDMG) %>%
+  group_by(EVTYPE) %>%
+  summarise_all(funs(sum))
+
+propdmg <- economic %>%
+  select(EVTYPE, PROPDMG) %>%
+  arrange(desc(PROPDMG)) %>%
+  top_n(10)
+```
+
+```
+## Selecting by PROPDMG
+```
+
+```r
+cropdmg <- economic %>%
+  select(EVTYPE, CROPDMG) %>%
+  arrange(desc(CROPDMG)) %>%
+  top_n(10)
+```
+
+```
+## Selecting by CROPDMG
+```
+
+Finally we express the prop and property damages in the billions for easy viewing:
+
+
+```r
+propdmg$PROPDMG <- round(propdmg$PROPDMG / 1e9, 2)
+cropdmg$CROPDMG <- round(cropdmg$CROPDMG / 1e9, 2)
+```
+
+With these steps complete, we are ready to present our results.
 
 ## Results
 
@@ -332,10 +355,10 @@ We select the top 10 event types that contribute the most harm to population hea
 ```r
 h1 <- ggplot(fatalities, aes(x=reorder(EVTYPE, FATALITIES), y=FATALITIES)) +
   geom_bar(stat="identity") + theme(aspect.ratio=1.) + coord_flip() +
-  labs(x="Event Types", y="No. of Fatalities")
+  labs(x="Weather Event", y="No. of Fatalities")
 h2 <- ggplot(injuries, aes(x=reorder(EVTYPE, INJURIES), y=INJURIES)) +
   geom_bar(stat="identity") + theme(aspect.ratio=1.) + coord_flip() +
-  labs(x="Event Types", y="No. of Injuries")
+  labs(x="Weather Event", y="No. of Injuries")
 
 g1 <- ggplotGrob(h1)
 g2 <- ggplotGrob(h2)
@@ -346,72 +369,36 @@ g1$widths[4] <- unit(3,"null")
 g <- gtable_rbind(g1, g2, size='first')
 g <- gtable_add_rows(g, grobHeight(plottitle)+unit(2,"mm"), pos=0)
 g <- gtable_add_grob(g, plottitle, 1, 1, r=7)
-g
-```
 
-```
-## TableGrob (21 x 7) "layout": 35 grobs
-##     z         cells       name                                  grob
-## 1   0 ( 2-11, 1- 7) background        rect[plot.background..rect.50]
-## 2   5 ( 6- 6, 3- 3)     spacer                        zeroGrob[NULL]
-## 3   7 ( 7- 7, 3- 3)     axis-l    absoluteGrob[GRID.absoluteGrob.45]
-## 4   3 ( 8- 8, 3- 3)     spacer                        zeroGrob[NULL]
-## 5   6 ( 6- 6, 4- 4)     axis-t                        zeroGrob[NULL]
-## 6   1 ( 7- 7, 4- 4)      panel               gTree[panel-1.gTree.25]
-## 7   9 ( 8- 8, 4- 4)     axis-b    absoluteGrob[GRID.absoluteGrob.38]
-## 8   4 ( 6- 6, 5- 5)     spacer                        zeroGrob[NULL]
-## 9   8 ( 7- 7, 5- 5)     axis-r                        zeroGrob[NULL]
-## 10  2 ( 8- 8, 5- 5)     spacer                        zeroGrob[NULL]
-## 11 10 ( 5- 5, 4- 4)     xlab-t                        zeroGrob[NULL]
-## 12 11 ( 9- 9, 4- 4)     xlab-b titleGrob[axis.title.x..titleGrob.31]
-## 13 12 ( 7- 7, 2- 2)     ylab-l titleGrob[axis.title.y..titleGrob.28]
-## 14 13 ( 7- 7, 6- 6)     ylab-r                        zeroGrob[NULL]
-## 15 14 ( 4- 4, 4- 4)   subtitle  zeroGrob[plot.subtitle..zeroGrob.47]
-## 16 15 ( 3- 3, 4- 4)      title     zeroGrob[plot.title..zeroGrob.46]
-## 17 16 (10-10, 4- 4)    caption   zeroGrob[plot.caption..zeroGrob.48]
-## 18  0 (12-21, 1- 7) background        rect[plot.background..rect.90]
-## 19  5 (16-16, 3- 3)     spacer                        zeroGrob[NULL]
-## 20  7 (17-17, 3- 3)     axis-l    absoluteGrob[GRID.absoluteGrob.85]
-## 21  3 (18-18, 3- 3)     spacer                        zeroGrob[NULL]
-## 22  6 (16-16, 4- 4)     axis-t                        zeroGrob[NULL]
-## 23  1 (17-17, 4- 4)      panel               gTree[panel-1.gTree.65]
-## 24  9 (18-18, 4- 4)     axis-b    absoluteGrob[GRID.absoluteGrob.78]
-## 25  4 (16-16, 5- 5)     spacer                        zeroGrob[NULL]
-## 26  8 (17-17, 5- 5)     axis-r                        zeroGrob[NULL]
-## 27  2 (18-18, 5- 5)     spacer                        zeroGrob[NULL]
-## 28 10 (15-15, 4- 4)     xlab-t                        zeroGrob[NULL]
-## 29 11 (19-19, 4- 4)     xlab-b titleGrob[axis.title.x..titleGrob.71]
-## 30 12 (17-17, 2- 2)     ylab-l titleGrob[axis.title.y..titleGrob.68]
-## 31 13 (17-17, 6- 6)     ylab-r                        zeroGrob[NULL]
-## 32 14 (14-14, 4- 4)   subtitle  zeroGrob[plot.subtitle..zeroGrob.87]
-## 33 15 (13-13, 4- 4)      title     zeroGrob[plot.title..zeroGrob.86]
-## 34 16 (20-20, 4- 4)    caption   zeroGrob[plot.caption..zeroGrob.88]
-## 35 17 ( 1- 1, 1- 7)     layout                    text[GRID.text.91]
-```
-
-```r
-g$heights
-```
-
-```
-##  [1] 1grobheight+2mm          5.5pt                   
-##  [3] 0cm                      0cm                     
-##  [5] 0cm                      0cm                     
-##  [7] 1null                    sum(2.75pt, 1grobheight)
-##  [9] 1grobheight              0cm                     
-## [11] 5.5pt                    5.5pt                   
-## [13] 0cm                      0cm                     
-## [15] 0cm                      0cm                     
-## [17] 1null                    sum(2.75pt, 1grobheight)
-## [19] 1grobheight              0cm                     
-## [21] 5.5pt
-```
-
-```r
 grid.newpage()
 grid.draw(g)
 ```
 
-![](PA2_storm_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
+![](PA2_storm_files/figure-html/unnamed-chunk-13-1.png)<!-- -->
+
+
+```r
+l1 <- ggplot(propdmg, aes(x=reorder(EVTYPE, PROPDMG), y=PROPDMG)) +
+  geom_bar(stat="identity") + theme(aspect.ratio=1.) + coord_flip() +
+  labs(x="Weather Event", y="Property Damage (Billion USD)")
+l2 <- ggplot(cropdmg, aes(x=reorder(EVTYPE, CROPDMG), y=CROPDMG)) +
+  geom_bar(stat="identity") + theme(aspect.ratio=1.) + coord_flip() +
+  labs(x="Weather Event", y="Crop Damage")
+
+k1 <- ggplotGrob(l1)
+k2 <- ggplotGrob(l2)
+plottitle2 <- textGrob(
+  'Fig. 2: Top 10 events harmful to U.S. economy (1950-2011)', just='centre')
+
+g1$widths[4] <- unit(3,"null")
+k <- gtable_rbind(k1, k2, size='first')
+k <- gtable_add_rows(k, grobHeight(plottitle2)+unit(2,"mm"), pos=0)
+k <- gtable_add_grob(k, plottitle2, 1, 1, r=7)
+
+grid.newpage()
+grid.draw(k)
+```
+
+![](PA2_storm_files/figure-html/unnamed-chunk-14-1.png)<!-- -->
 
 ## Conclusion

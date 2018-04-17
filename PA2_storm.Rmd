@@ -75,14 +75,14 @@ Economic consequences:
 
 We will select these variables from the original dataset in addition to `EVTYPE` for obvious reasons, and `STATE__` in order to analyse the spatial variation of population health and economic consequences:
 
-```{r, cache=TRUE}
+```{r}
 df_filtered <- select(df, EVTYPE, STATE__, FATALITIES, INJURIES, 
                       PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
 ```
 
 The proportion of missing values in the dataframe is first determined for the relevant variables:
 
-```{r, cache=TRUE}
+```{r}
 mean(is.na(df_filtered))
 ```
 
@@ -135,9 +135,9 @@ event <- gsub('.*dust.*', 'DUST STORM', event, ignore.case=TRUE)
 df_filtered$EVTYPE <- event
 ```
 
-Having completed the cleaning of the data, we will split the dataset into two parts, one to determine the effect of these weather events on human health and the other two determine their effect on the economy.
+Having completed the cleaning of the data, we will split the dataset into two parts, one to determine the effect of these weather events on human health and the other to determine their effect on the economy. The portion related to human health is then further split into two portions, one describing human fatalities and one describing human injuries. 
 
-```{r}
+```{r, results='hide'}
 health <- df_filtered %>% 
   select(EVTYPE, FATALITIES, INJURIES) %>%
   group_by(EVTYPE) %>% 
@@ -152,18 +152,65 @@ injuries <- health %>%
   select(EVTYPE, INJURIES) %>%
   arrange(desc(INJURIES)) %>%
   top_n(10)
-
-fatalities
-
-injuries
 ```
 
 Next we can examine the variables `PROPDMGEXP` and `CROPDMGEXP`:
 
 ```{r}
-unique(df_filtered$PROPDMGEXP)
-unique(df_filtered$CROPDMGEXP)
+economic <- df_filtered %>% select(EVTYPE, PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
+unique(economic$PROPDMGEXP)
+unique(economic$CROPDMGEXP)
 ```
+
+The variables `PROPDMGEXP` and `CROPDMGEXP` denote the exponent that is meant to be multiplied with `PROPDMG` and `CROPDMG` respectively in order to obtain the actual values of property and crop damag. Therefore in order to proceed it is required to transform the values under `PROPDMGEXP` and `CROPDMGEXP` to their actual numerical values.
+
+```{r}
+
+economic$PROPDMGEXP <- with(economic, ifelse(PROPDMGEXP=='H'|PROPDMGEXP=='h', 1e2,
+                                      ifelse(PROPDMGEXP=='K'|PROPDMGEXP=='k', 1e3,
+                                      ifelse(PROPDMGEXP=='M'|PROPDMGEXP=='m', 1e6,
+                                      ifelse(PROPDMGEXP=='B'|PROPDMGEXP=='b', 1e9, 
+                                      ifelse(grepl('[0-8]',PROPDMGEXP), 1e1,
+                                      ifelse(PROPDMGEXP=='+', 1e0, 0)))))))
+
+economic$CROPDMGEXP <- with(economic, ifelse(CROPDMGEXP=='H'|CROPDMGEXP=='h', 1e2,
+                                      ifelse(CROPDMGEXP=='K'|CROPDMGEXP=='k', 1e3,
+                                      ifelse(CROPDMGEXP=='M'|CROPDMGEXP=='m', 1e6,
+                                      ifelse(CROPDMGEXP=='B'|CROPDMGEXP=='b', 1e9,
+                                      ifelse(grepl('[0-8]',CROPDMGEXP), 1e1,
+                                      ifelse(CROPDMGEXP=='+', 1e0, 0)))))))
+
+economic$PROPDMG <- economic$PROPDMG * economic$PROPDMGEXP 
+economic$CROPDMG <- economic$CROPDMG * economic$CROPDMGEXP
+```
+
+Similar to before, the dataset `economic` is split into two parts, one to describe property damage and the other to describe crop damage:
+
+```{r, results='hide'}
+economic <- economic %>% 
+  select(EVTYPE, PROPDMG, CROPDMG) %>%
+  group_by(EVTYPE) %>%
+  summarise_all(funs(sum))
+
+propdmg <- economic %>%
+  select(EVTYPE, PROPDMG) %>%
+  arrange(desc(PROPDMG)) %>%
+  top_n(10)
+
+cropdmg <- economic %>%
+  select(EVTYPE, CROPDMG) %>%
+  arrange(desc(CROPDMG)) %>%
+  top_n(10)
+```
+
+Finally we express the prop and property damages in the billions for easy viewing:
+
+```{r}
+propdmg$PROPDMG <- round(propdmg$PROPDMG / 1e9, 2)
+cropdmg$CROPDMG <- round(cropdmg$CROPDMG / 1e9, 2)
+```
+
+With these steps complete, we are ready to present our results.
 
 ## Results
 
@@ -172,10 +219,10 @@ We select the top 10 event types that contribute the most harm to population hea
 ```{r}
 h1 <- ggplot(fatalities, aes(x=reorder(EVTYPE, FATALITIES), y=FATALITIES)) +
   geom_bar(stat="identity") + theme(aspect.ratio=1.) + coord_flip() +
-  labs(x="Event Types", y="No. of Fatalities")
+  labs(x="Weather Event", y="No. of Fatalities")
 h2 <- ggplot(injuries, aes(x=reorder(EVTYPE, INJURIES), y=INJURIES)) +
   geom_bar(stat="identity") + theme(aspect.ratio=1.) + coord_flip() +
-  labs(x="Event Types", y="No. of Injuries")
+  labs(x="Weather Event", y="No. of Injuries")
 
 g1 <- ggplotGrob(h1)
 g2 <- ggplotGrob(h2)
@@ -186,10 +233,31 @@ g1$widths[4] <- unit(3,"null")
 g <- gtable_rbind(g1, g2, size='first')
 g <- gtable_add_rows(g, grobHeight(plottitle)+unit(2,"mm"), pos=0)
 g <- gtable_add_grob(g, plottitle, 1, 1, r=7)
-g
-g$heights
+
 grid.newpage()
 grid.draw(g)
+```
+
+```{r}
+l1 <- ggplot(propdmg, aes(x=reorder(EVTYPE, PROPDMG), y=PROPDMG)) +
+  geom_bar(stat="identity") + theme(aspect.ratio=1.) + coord_flip() +
+  labs(x="Weather Event", y="Property Damage (Billion USD)")
+l2 <- ggplot(cropdmg, aes(x=reorder(EVTYPE, CROPDMG), y=CROPDMG)) +
+  geom_bar(stat="identity") + theme(aspect.ratio=1.) + coord_flip() +
+  labs(x="Weather Event", y="Crop Damage")
+
+k1 <- ggplotGrob(l1)
+k2 <- ggplotGrob(l2)
+plottitle2 <- textGrob(
+  'Fig. 2: Top 10 events harmful to U.S. economy (1950-2011)', just='centre')
+
+g1$widths[4] <- unit(3,"null")
+k <- gtable_rbind(k1, k2, size='first')
+k <- gtable_add_rows(k, grobHeight(plottitle2)+unit(2,"mm"), pos=0)
+k <- gtable_add_grob(k, plottitle2, 1, 1, r=7)
+
+grid.newpage()
+grid.draw(k)
 ```
 
 ## Conclusion
