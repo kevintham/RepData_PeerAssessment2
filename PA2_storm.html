@@ -329,7 +329,7 @@ $(document).ready(function () {
 <p>First, we load the required packages and install them first if they are not available:</p>
 <pre class="r"><code>if (!require(&quot;pacman&quot;)) install.packages(&quot;pacman&quot;)</code></pre>
 <pre><code>## Loading required package: pacman</code></pre>
-<pre class="r"><code>pacman::p_load(knitr, dplyr, ggplot2, tidyr, hexbin, timeDate)</code></pre>
+<pre class="r"><code>pacman::p_load(knitr, dplyr, ggplot2, tidyr, hexbin, timeDate, grid, gridExtra, gtable)</code></pre>
 <p>Next we download and unzip the data file to read in the dataset:</p>
 <pre class="r"><code>destfile &lt;- 'repdata%2Fdata%2FStormData.csv.bz2'
 url &lt;- 'https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2'
@@ -456,6 +456,7 @@ event &lt;- gsub('.*SNOW.*', 'HEAVY SNOW', event, ignore.case=TRUE)
 event &lt;- gsub('.*HURRICANE.*', 'HURRICANE/TYPHOON', event, ignore.case=TRUE)
 event &lt;- gsub('.*TYPHOON.*', 'HURRICANE/TYPHOON', event, ignore.case=TRUE)
 event &lt;- gsub('.*HEAT.*', 'HEAT', event, ignore.case=TRUE)
+event &lt;- gsub('.*HOT.*', 'HEAT', event, ignore.case=TRUE)
 event &lt;- gsub('.*WARM.*', 'HEAT', event, ignore.case=TRUE)
 event &lt;- gsub('.*HIGH TEMP.*', 'HEAT', event, ignore.case=TRUE)
 event &lt;- gsub('.*COLD.*', 'EXTREME COLD/WIND CHILL', event, ignore.case=TRUE)
@@ -472,192 +473,135 @@ event &lt;- gsub('.*CURRENT.*', 'RIP CURRENT', event, ignore.case=TRUE)
 event &lt;- gsub('.*DRY.*', 'DROUGHT', event, ignore.case=TRUE)
 event &lt;- gsub('(?&lt;!FREEZING )RAIN.*', 'HEAVY RAIN', event, ignore.case=TRUE, perl=TRUE)
 event &lt;- gsub('.*RAIN.*', 'HEAVY RAIN', event, ignore.case=TRUE)
+event &lt;- gsub('.*dust.*', 'DUST STORM', event, ignore.case=TRUE)
+#table(grep('tornado',event,ignore.case=TRUE,value=TRUE, perl=TRUE))
+#unique(event)
 
-table(grep('(?&lt;!freezing )rain',event,ignore.case=TRUE,value=TRUE, perl=TRUE))</code></pre>
-<pre><code>## 
-## HEAVY RAIN 
-##      12161</code></pre>
-<pre class="r"><code>unique(event)</code></pre>
-<pre><code>##   [1] &quot;TORNADO&quot;                        &quot;THUNDERSTORM WIND&quot;             
-##   [3] &quot;HAIL&quot;                           &quot;HEAVY RAIN&quot;                    
-##   [5] &quot;HEAVY SNOW&quot;                     &quot;FLOOD&quot;                         
-##   [7] &quot;WINTER STORM&quot;                   &quot;HURRICANE/TYPHOON&quot;             
-##   [9] &quot;EXTREME COLD/WIND CHILL&quot;        &quot;LIGHTNING&quot;                     
-##  [11] &quot;DENSE FOG&quot;                      &quot;RIP CURRENT&quot;                   
-##  [13] &quot;HIGH WIND&quot;                      &quot;FUNNEL CLOUD&quot;                  
-##  [15] &quot;HEAT&quot;                           &quot;WIND&quot;                          
-##  [17] &quot;LIGHTING&quot;                       &quot;WALL CLOUD&quot;                    
-##  [19] &quot;WATERSPOUT&quot;                     &quot;BLIZZARD&quot;                      
-##  [21] &quot;WIND CHILL&quot;                     &quot;FREEZE&quot;                        
-##  [23] &quot;HIGH TIDES&quot;                     &quot;RECORD HIGH&quot;                   
-##  [25] &quot;ICE STORM&quot;                      &quot;RECORD LOW&quot;                    
-##  [27] &quot;LOW TEMPERATURE RECORD&quot;         &quot;AVALANCHE&quot;                     
-##  [29] &quot;MARINE MISHAP&quot;                  &quot;WIND CHILL/HIGH WIND&quot;          
-##  [31] &quot;HIGH SEAS&quot;                      &quot;SEVERE TURBULENCE&quot;             
-##  [33] &quot;WIND DAMAGE&quot;                    &quot;DUST STORM&quot;                    
-##  [35] &quot;APACHE COUNTY&quot;                  &quot;SLEET&quot;                         
-##  [37] &quot;DUST DEVIL&quot;                     &quot;WINTER STORM/HIGH WIND&quot;        
-##  [39] &quot;WINTER STORM/HIGH WINDS&quot;        &quot;GUSTY WINDS&quot;                   
-##  [41] &quot;STRONG WINDS&quot;                   &quot;HEAVY SURF&quot;                    
-##  [43] &quot;HEAVY PRECIPATATION&quot;            &quot;HIGH SURF&quot;                     
-##  [45] &quot;BLOWING DUST&quot;                   &quot;URBAN/SMALL&quot;                   
-##  [47] &quot;WILDFIRE&quot;                       &quot;HIGH&quot;                          
-##  [49] &quot;WINTER STORM HIGH WINDS&quot;        &quot;WINTER STORMS&quot;                 
-##  [51] &quot;MUDSLIDES&quot;                      &quot;WINDS&quot;                         
-##  [53] &quot;STRONG WIND&quot;                    &quot;URBAN AND SMALL&quot;               
-##  [55] &quot;ICE&quot;                            &quot;DOWNBURST&quot;                     
-##  [57] &quot;GUSTNADO AND&quot;                   &quot;DOWNBURST WINDS&quot;               
-##  [59] &quot;DROUGHT&quot;                        &quot;FREEZING DRIZZLE&quot;              
-##  [61] &quot;GLAZE&quot;                          &quot;UNSEASONABLY WET&quot;              
-##  [63] &quot;WINTRY MIX&quot;                     &quot;WINTER WEATHER&quot;                
-##  [65] &quot;NORMAL PRECIPITATION&quot;           &quot;STORM SURGE&quot;                   
-##  [67] &quot;TROPICAL STORM&quot;                 &quot;URBAN AND SMALL STREAM&quot;        
-##  [69] &quot;DAMAGING FREEZE&quot;                &quot;MUD SLIDE&quot;                     
-##  [71] &quot;LIGNTNING&quot;                      &quot;FROST&quot;                         
-##  [73] &quot;EXTREME WIND CHILLS&quot;            &quot;COOL AND WET&quot;                  
-##  [75] &quot;GLAZE ICE&quot;                      &quot;HIGH  WINDS&quot;                   
-##  [77] &quot;SMALL STREAM AND&quot;               &quot;MUD SLIDES&quot;                    
-##  [79] &quot;EXTREME WIND CHILL&quot;             &quot;EXCESSIVE WETNESS&quot;             
-##  [81] &quot;GRADIENT WINDS&quot;                 &quot;SLEET/ICE STORM&quot;               
-##  [83] &quot;ROTATING WALL CLOUD&quot;            &quot;LARGE WALL CLOUD&quot;              
-##  [85] &quot;GUSTNADO&quot;                       &quot;FOG&quot;                           
-##  [87] &quot;WIND STORM&quot;                     &quot;AGRICULTURAL FREEZE&quot;           
-##  [89] &quot;TUNDERSTORM WIND&quot;               &quot;COASTAL SURGE&quot;                 
-##  [91] &quot;ICE FLOES&quot;                      &quot;HIGH WAVES&quot;                    
-##  [93] &quot;LOW WIND CHILL&quot;                 &quot;URBAN/SMALL STREAM&quot;            
-##  [95] &quot;TORNDAO&quot;                        &quot;GLAZE/ICE STORM&quot;               
-##  [97] &quot;AVALANCE&quot;                       &quot;DUST STORM/HIGH WINDS&quot;         
-##  [99] &quot;ICE JAM&quot;                        &quot;FROST\\FREEZE&quot;                 
-## [101] &quot;HARD FREEZE&quot;                    &quot;BELOW NORMAL PRECIPITATION&quot;    
-## [103] &quot;RECORD TEMPERATURES&quot;            &quot;OTHER&quot;                         
-## [105] &quot;MUDSLIDE&quot;                       &quot;ICY ROADS&quot;                     
-## [107] &quot;HEAVY MIX&quot;                      &quot;DAM FAILURE&quot;                   
-## [109] &quot;THUDERSTORM WINDS&quot;              &quot;STORM FORCE WINDS&quot;             
-## [111] &quot;SOUTHEAST&quot;                      &quot;FREEZING DRIZZLE AND FREEZING&quot; 
-## [113] &quot;HEAVY PRECIPITATION&quot;            &quot;HIGH WATER&quot;                    
-## [115] &quot;WET WEATHER&quot;                    &quot;BEACH EROSIN&quot;                  
-## [117] &quot;LOW TEMPERATURE&quot;                &quot;HYPOTHERMIA&quot;                   
-## [119] &quot;THUNERSTORM WINDS&quot;              &quot;MUD/ROCK SLIDE&quot;                
-## [121] &quot;RAPIDLY RISING WATER&quot;           &quot;EARLY FREEZE&quot;                  
-## [123] &quot;ICE/STRONG WINDS&quot;               &quot;EXTREME WIND CHILL/BLOWING SNO&quot;
-## [125] &quot;EARLY FROST&quot;                    &quot;LANDSLIDE&quot;                     
-## [127] &quot;EXCESSIVE&quot;                      &quot;HEAVY SEAS&quot;                    
-## [129] &quot;DUSTSTORM&quot;                      &quot;?&quot;                             
-## [131] &quot;HOT PATTERN&quot;                    &quot;WINTER MIX&quot;                    
-## [133] &quot;EXCESSIVE PRECIPITATION&quot;        &quot;MILD PATTERN&quot;                  
-## [135] &quot;LANDSLIDES&quot;                     &quot;HEAVY SHOWERS&quot;                 
-## [137] &quot;SAHARAN DUST&quot;                   &quot;HEAVY SHOWER&quot;                  
-## [139] &quot;HEAVY SWELLS&quot;                   &quot;URBAN SMALL&quot;                   
-## [141] &quot;SMALL STREAM&quot;                   &quot;EXTREME WINDCHILL&quot;             
-## [143] &quot;URBAN/SML STREAM FLD&quot;           &quot;Other&quot;                         
-## [145] &quot;Temperature record&quot;             &quot;ROUGH SURF&quot;                    
-## [147] &quot;Wind&quot;                           &quot;Heavy Surf&quot;                    
-## [149] &quot;Dust Devil&quot;                     &quot;Wind Damage&quot;                   
-## [151] &quot;Marine Accident&quot;                &quot;Freeze&quot;                        
-## [153] &quot;Strong Wind&quot;                    &quot;COASTAL STORM&quot;                 
-## [155] &quot;Wet Month&quot;                      &quot;Wet Year&quot;                      
-## [157] &quot;Damaging Freeze&quot;                &quot;Beach Erosion&quot;                 
-## [159] &quot;Icy Roads&quot;                      &quot;High Surf&quot;                     
-## [161] &quot;Early Frost&quot;                    &quot;Wintry Mix&quot;                    
-## [163] &quot;Ice Fog&quot;                        &quot;Landslump&quot;                     
-## [165] &quot;Coastal Storm&quot;                  &quot;Winter Weather&quot;                
-## [167] &quot;Strong Winds&quot;                   &quot;Strong winds&quot;                  
-## [169] &quot;Mudslide&quot;                       &quot;Glaze&quot;                         
-## [171] &quot;Freezing Fog&quot;                   &quot;Whirlwind&quot;                     
-## [173] &quot;Heavy Precipitation&quot;            &quot;Record temperature&quot;            
-## [175] &quot;Gusty Wind&quot;                     &quot;MIXED PRECIP&quot;                  
-## [177] &quot;Black Ice&quot;                      &quot;Mudslides&quot;                     
-## [179] &quot;Gradient wind&quot;                  &quot;Freezing Spray&quot;                
-## [181] &quot;Summary Jan 17&quot;                 &quot;Summary of March 14&quot;           
-## [183] &quot;Summary of March 23&quot;            &quot;Summary of March 24&quot;           
-## [185] &quot;Summary of April 3rd&quot;           &quot;Summary of April 12&quot;           
-## [187] &quot;Summary of April 13&quot;            &quot;Summary of April 21&quot;           
-## [189] &quot;Summary August 11&quot;              &quot;Summary of April 27&quot;           
-## [191] &quot;Summary of May 9-10&quot;            &quot;Summary of May 10&quot;             
-## [193] &quot;Summary of May 13&quot;              &quot;Summary of May 14&quot;             
-## [195] &quot;Summary of May 22 am&quot;           &quot;Summary of May 22 pm&quot;          
-## [197] &quot;Summary of May 26 am&quot;           &quot;Summary of May 26 pm&quot;          
-## [199] &quot;Metro Storm, May 26&quot;            &quot;Summary of May 31 am&quot;          
-## [201] &quot;Summary of May 31 pm&quot;           &quot;Summary of June 3&quot;             
-## [203] &quot;Summary of June 4&quot;              &quot;Summary June 5-6&quot;              
-## [205] &quot;Summary June 6&quot;                 &quot;Summary of June 11&quot;            
-## [207] &quot;Summary of June 12&quot;             &quot;Summary of June 13&quot;            
-## [209] &quot;Summary of June 15&quot;             &quot;Summary of June 16&quot;            
-## [211] &quot;Summary June 18-19&quot;             &quot;Summary of June 23&quot;            
-## [213] &quot;Summary of June 24&quot;             &quot;Summary of June 30&quot;            
-## [215] &quot;Summary of July 2&quot;              &quot;Summary of July 3&quot;             
-## [217] &quot;Summary of July 11&quot;             &quot;Summary of July 22&quot;            
-## [219] &quot;Summary July 23-24&quot;             &quot;Summary of July 26&quot;            
-## [221] &quot;Summary of July 29&quot;             &quot;Summary of August 1&quot;           
-## [223] &quot;Summary August 2-3&quot;             &quot;Summary August 7&quot;              
-## [225] &quot;Summary August 9&quot;               &quot;Summary August 10&quot;             
-## [227] &quot;Summary August 17&quot;              &quot;Summary August 21&quot;             
-## [229] &quot;Summary August 28&quot;              &quot;Summary September 4&quot;           
-## [231] &quot;Summary September 20&quot;           &quot;Summary September 23&quot;          
-## [233] &quot;Summary Sept. 25-26&quot;            &quot;Summary: Oct. 20-21&quot;           
-## [235] &quot;Summary: October 31&quot;            &quot;Summary: Nov. 6-7&quot;             
-## [237] &quot;Summary: Nov. 16&quot;               &quot;wet micoburst&quot;                 
-## [239] &quot;No Severe Weather&quot;              &quot;Summary of May 22&quot;             
-## [241] &quot;Summary of June 6&quot;              &quot;Summary August 4&quot;              
-## [243] &quot;Summary of June 10&quot;             &quot;Summary of June 18&quot;            
-## [245] &quot;Summary September 3&quot;            &quot;Summary: Sept. 18&quot;             
-## [247] &quot;Record Temperatures&quot;            &quot;Freezing Drizzle&quot;              
-## [249] &quot;Sml Stream Fld&quot;                 &quot;MUDSLIDE/LANDSLIDE&quot;            
-## [251] &quot;Saharan Dust&quot;                   &quot;Volcanic Ash&quot;                  
-## [253] &quot;Volcanic Ash Plume&quot;             &quot;NONE&quot;                          
-## [255] &quot;DAM BREAK&quot;                      &quot;BLACK ICE&quot;                     
-## [257] &quot;BLOW-OUT TIDES&quot;                 &quot;UNSEASONABLY COOL&quot;             
-## [259] &quot;Gusty Winds&quot;                    &quot;GUSTY WIND&quot;                    
-## [261] &quot;Wintry mix&quot;                     &quot;Frost&quot;                         
-## [263] &quot;Frost/Freeze&quot;                   &quot;URBAN/SML STREAM FLDG&quot;         
-## [265] &quot;STRONG WIND GUST&quot;               &quot;LATE FREEZE&quot;                   
-## [267] &quot;BLOW-OUT TIDE&quot;                  &quot;Hypothermia/Exposure&quot;          
-## [269] &quot;HYPOTHERMIA/EXPOSURE&quot;           &quot;Mixed Precipitation&quot;           
-## [271] &quot;Record High&quot;                    &quot;COASTALSTORM&quot;                  
-## [273] &quot;Gusty winds&quot;                    &quot;SUMMARY OF MARCH 24-25&quot;        
-## [275] &quot;SUMMARY OF MARCH 27&quot;            &quot;SUMMARY OF MARCH 29&quot;           
-## [277] &quot;GRADIENT WIND&quot;                  &quot;gradient wind&quot;                 
-## [279] &quot;Freezing drizzle&quot;               &quot;URBAN/SMALL STRM FLDG&quot;         
-## [281] &quot;Heavy surf and wind&quot;            &quot;HIGH SWELLS&quot;                   
-## [283] &quot;HIGH  SWELLS&quot;                   &quot;VOLCANIC ASH&quot;                  
-## [285] &quot;BEACH EROSION&quot;                  &quot;WINTERY MIX&quot;                   
-## [287] &quot;HOT SPELL&quot;                      &quot;UNSEASONABLY HOT&quot;              
-## [289] &quot;WAKE LOW WIND&quot;                  &quot;COASTAL EROSION&quot;               
-## [291] &quot;BITTER WIND CHILL&quot;              &quot;BITTER WIND CHILL TEMPERATURES&quot;
-## [293] &quot;SEICHE&quot;                         &quot;HYPERTHERMIA/EXPOSURE&quot;         
-## [295] &quot;ROCK SLIDE&quot;                     &quot;ICE PELLETS&quot;                   
-## [297] &quot;PATCHY DENSE FOG&quot;               &quot;RECORD COOL&quot;                   
-## [299] &quot;HOT WEATHER&quot;                    &quot;RECORD TEMPERATURE&quot;            
-## [301] &quot;TROPICAL DEPRESSION&quot;            &quot;VOLCANIC ERUPTION&quot;             
-## [303] &quot;COOL SPELL&quot;                     &quot;WIND ADVISORY&quot;                 
-## [305] &quot;FIRST FROST&quot;                    &quot;VOG&quot;                           
-## [307] &quot;MONTHLY PRECIPITATION&quot;          &quot;MONTHLY TEMPERATURE&quot;           
-## [309] &quot;EXTREME WINDCHILL TEMPERATURES&quot; &quot;MIXED PRECIPITATION&quot;           
-## [311] &quot;REMNANTS OF FLOYD&quot;              &quot;FREEZING FOG&quot;                  
-## [313] &quot;DRIEST MONTH&quot;                   &quot;WIND AND WAVE&quot;                 
-## [315] &quot; WIND&quot;                          &quot;RECORD PRECIPITATION&quot;          
-## [317] &quot;ICE ROADS&quot;                      &quot;ROUGH SEAS&quot;                    
-## [319] &quot;UNSEASONABLY COOL &amp; WET&quot;        &quot;NON-SEVERE WIND DAMAGE&quot;        
-## [321] &quot;LANDSLUMP&quot;                      &quot;WIND GUSTS&quot;                    
-## [323] &quot;UNSEASONAL LOW TEMP&quot;            &quot;HIGH SURF ADVISORY&quot;            
-## [325] &quot;GUSTY LAKE WIND&quot;                &quot;WINTER WEATHER MIX&quot;            
-## [327] &quot;RED FLAG CRITERIA&quot;              &quot;WND&quot;                           
-## [329] &quot;SMOKE&quot;                          &quot;EXTREMELY WET&quot;                 
-## [331] &quot;ROGUE WAVE&quot;                     &quot;DUST DEVEL&quot;                    
-## [333] &quot;PATCHY ICE&quot;                     &quot;NORTHERN LIGHTS&quot;               
-## [335] &quot;   HIGH SURF ADVISORY&quot;          &quot;HAZARDOUS SURF&quot;                
-## [337] &quot;FROST/FREEZE&quot;                   &quot;WINTER WEATHER/MIX&quot;            
-## [339] &quot;ASTRONOMICAL HIGH TIDE&quot;         &quot;WHIRLWIND&quot;                     
-## [341] &quot;ABNORMALLY WET&quot;                 &quot;ICE ON ROAD&quot;                   
-## [343] &quot;DROWNING&quot;                       &quot;HIGH SURF ADVISORIES&quot;          
-## [345] &quot;HEAVY SURF/HIGH SURF&quot;           &quot;SLEET STORM&quot;                   
-## [347] &quot;STORM SURGE/TIDE&quot;               &quot;MARINE HIGH WIND&quot;              
-## [349] &quot;TSUNAMI&quot;                        &quot;DENSE SMOKE&quot;                   
-## [351] &quot;MARINE STRONG WIND&quot;             &quot;ASTRONOMICAL LOW TIDE&quot;         
-## [353] &quot;VOLCANIC ASHFALL&quot;</code></pre>
+df_filtered$EVTYPE &lt;- event</code></pre>
+<p>Having completed the cleaning of the data, we will split the dataset into two parts, one to determine the effect of these weather events on human health and the other two determine their effect on the economy.</p>
+<pre class="r"><code>health &lt;- df_filtered %&gt;% 
+  select(EVTYPE, FATALITIES, INJURIES) %&gt;%
+  group_by(EVTYPE) %&gt;% 
+  summarise_all(funs(sum))
+
+fatalities &lt;- health %&gt;%
+  select(EVTYPE, FATALITIES) %&gt;%
+  arrange(desc(FATALITIES)) %&gt;%
+  top_n(10)</code></pre>
+<pre><code>## Selecting by FATALITIES</code></pre>
+<pre class="r"><code>injuries &lt;- health %&gt;%
+  select(EVTYPE, INJURIES) %&gt;%
+  arrange(desc(INJURIES)) %&gt;%
+  top_n(10)</code></pre>
+<pre><code>## Selecting by INJURIES</code></pre>
+<pre class="r"><code>fatalities</code></pre>
+<pre><code>## # A tibble: 10 x 2
+##    EVTYPE                  FATALITIES
+##    &lt;chr&gt;                        &lt;dbl&gt;
+##  1 TORNADO                       5633
+##  2 HEAT                          3178
+##  3 FLOOD                         1525
+##  4 LIGHTNING                      817
+##  5 THUNDERSTORM WIND              759
+##  6 RIP CURRENT                    577
+##  7 EXTREME COLD/WIND CHILL        436
+##  8 HIGH WIND                      293
+##  9 AVALANCHE                      224
+## 10 WINTER STORM                   206</code></pre>
+<pre class="r"><code>injuries</code></pre>
+<pre><code>## # A tibble: 10 x 2
+##    EVTYPE            INJURIES
+##    &lt;chr&gt;                &lt;dbl&gt;
+##  1 TORNADO              91364
+##  2 THUNDERSTORM WIND     9573
+##  3 HEAT                  9243
+##  4 FLOOD                 8604
+##  5 LIGHTNING             5231
+##  6 ICE STORM             1975
+##  7 WILDFIRE              1608
+##  8 HIGH WIND             1471
+##  9 HAIL                  1371
+## 10 HURRICANE/TYPHOON     1333</code></pre>
+<p>Next we can examine the variables <code>PROPDMGEXP</code> and <code>CROPDMGEXP</code>:</p>
+<pre class="r"><code>unique(df_filtered$PROPDMGEXP)</code></pre>
+<pre><code>##  [1] K M   B m + 0 5 6 ? 4 2 3 h 7 H - 1 8
+## Levels:  - ? + 0 1 2 3 4 5 6 7 8 B h H K m M</code></pre>
+<pre class="r"><code>unique(df_filtered$CROPDMGEXP)</code></pre>
+<pre><code>## [1]   M K m B ? 0 k 2
+## Levels:  ? 0 2 B k K m M</code></pre>
 </section>
 <section id="results" class="level2">
 <h2>Results</h2>
+<p>We select the top 10 event types that contribute the most harm to population health.</p>
+<pre class="r"><code>h1 &lt;- ggplot(fatalities, aes(x=reorder(EVTYPE, FATALITIES), y=FATALITIES)) +
+  geom_bar(stat=&quot;identity&quot;) + theme(aspect.ratio=1.) + coord_flip() +
+  labs(x=&quot;Event Types&quot;, y=&quot;No. of Fatalities&quot;)
+h2 &lt;- ggplot(injuries, aes(x=reorder(EVTYPE, INJURIES), y=INJURIES)) +
+  geom_bar(stat=&quot;identity&quot;) + theme(aspect.ratio=1.) + coord_flip() +
+  labs(x=&quot;Event Types&quot;, y=&quot;No. of Injuries&quot;)
+
+g1 &lt;- ggplotGrob(h1)
+g2 &lt;- ggplotGrob(h2)
+plottitle &lt;- textGrob(
+  'Fig. 1: Top 10 events harmful to U.S. population health (1950-2011)', just='centre')
+
+g1$widths[4] &lt;- unit(3,&quot;null&quot;)
+g &lt;- gtable_rbind(g1, g2, size='first')
+g &lt;- gtable_add_rows(g, grobHeight(plottitle)+unit(2,&quot;mm&quot;), pos=0)
+g &lt;- gtable_add_grob(g, plottitle, 1, 1, r=7)
+g</code></pre>
+<pre><code>## TableGrob (21 x 7) &quot;layout&quot;: 35 grobs
+##     z         cells       name                                  grob
+## 1   0 ( 2-11, 1- 7) background        rect[plot.background..rect.50]
+## 2   5 ( 6- 6, 3- 3)     spacer                        zeroGrob[NULL]
+## 3   7 ( 7- 7, 3- 3)     axis-l    absoluteGrob[GRID.absoluteGrob.45]
+## 4   3 ( 8- 8, 3- 3)     spacer                        zeroGrob[NULL]
+## 5   6 ( 6- 6, 4- 4)     axis-t                        zeroGrob[NULL]
+## 6   1 ( 7- 7, 4- 4)      panel               gTree[panel-1.gTree.25]
+## 7   9 ( 8- 8, 4- 4)     axis-b    absoluteGrob[GRID.absoluteGrob.38]
+## 8   4 ( 6- 6, 5- 5)     spacer                        zeroGrob[NULL]
+## 9   8 ( 7- 7, 5- 5)     axis-r                        zeroGrob[NULL]
+## 10  2 ( 8- 8, 5- 5)     spacer                        zeroGrob[NULL]
+## 11 10 ( 5- 5, 4- 4)     xlab-t                        zeroGrob[NULL]
+## 12 11 ( 9- 9, 4- 4)     xlab-b titleGrob[axis.title.x..titleGrob.31]
+## 13 12 ( 7- 7, 2- 2)     ylab-l titleGrob[axis.title.y..titleGrob.28]
+## 14 13 ( 7- 7, 6- 6)     ylab-r                        zeroGrob[NULL]
+## 15 14 ( 4- 4, 4- 4)   subtitle  zeroGrob[plot.subtitle..zeroGrob.47]
+## 16 15 ( 3- 3, 4- 4)      title     zeroGrob[plot.title..zeroGrob.46]
+## 17 16 (10-10, 4- 4)    caption   zeroGrob[plot.caption..zeroGrob.48]
+## 18  0 (12-21, 1- 7) background        rect[plot.background..rect.90]
+## 19  5 (16-16, 3- 3)     spacer                        zeroGrob[NULL]
+## 20  7 (17-17, 3- 3)     axis-l    absoluteGrob[GRID.absoluteGrob.85]
+## 21  3 (18-18, 3- 3)     spacer                        zeroGrob[NULL]
+## 22  6 (16-16, 4- 4)     axis-t                        zeroGrob[NULL]
+## 23  1 (17-17, 4- 4)      panel               gTree[panel-1.gTree.65]
+## 24  9 (18-18, 4- 4)     axis-b    absoluteGrob[GRID.absoluteGrob.78]
+## 25  4 (16-16, 5- 5)     spacer                        zeroGrob[NULL]
+## 26  8 (17-17, 5- 5)     axis-r                        zeroGrob[NULL]
+## 27  2 (18-18, 5- 5)     spacer                        zeroGrob[NULL]
+## 28 10 (15-15, 4- 4)     xlab-t                        zeroGrob[NULL]
+## 29 11 (19-19, 4- 4)     xlab-b titleGrob[axis.title.x..titleGrob.71]
+## 30 12 (17-17, 2- 2)     ylab-l titleGrob[axis.title.y..titleGrob.68]
+## 31 13 (17-17, 6- 6)     ylab-r                        zeroGrob[NULL]
+## 32 14 (14-14, 4- 4)   subtitle  zeroGrob[plot.subtitle..zeroGrob.87]
+## 33 15 (13-13, 4- 4)      title     zeroGrob[plot.title..zeroGrob.86]
+## 34 16 (20-20, 4- 4)    caption   zeroGrob[plot.caption..zeroGrob.88]
+## 35 17 ( 1- 1, 1- 7)     layout                    text[GRID.text.91]</code></pre>
+<pre class="r"><code>g$heights</code></pre>
+<pre><code>##  [1] 1grobheight+2mm          5.5pt                   
+##  [3] 0cm                      0cm                     
+##  [5] 0cm                      0cm                     
+##  [7] 1null                    sum(2.75pt, 1grobheight)
+##  [9] 1grobheight              0cm                     
+## [11] 5.5pt                    5.5pt                   
+## [13] 0cm                      0cm                     
+## [15] 0cm                      0cm                     
+## [17] 1null                    sum(2.75pt, 1grobheight)
+## [19] 1grobheight              0cm                     
+## [21] 5.5pt</code></pre>
+<pre class="r"><code>grid.newpage()
+grid.draw(g)</code></pre>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
 </section>
 <section id="conclusion" class="level2">
 <h2>Conclusion</h2>

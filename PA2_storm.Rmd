@@ -32,7 +32,7 @@ First, we load the required packages and install them first if they are not avai
 
 ```{r}
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(knitr, dplyr, ggplot2, tidyr, hexbin, timeDate)
+pacman::p_load(knitr, dplyr, ggplot2, tidyr, hexbin, timeDate, grid, gridExtra, gtable)
 ```
 
 Next we download and unzip the data file to read in the dataset:
@@ -49,7 +49,7 @@ df <- read.csv(destfile)
 
 We will explore the dataset using the `head()` and `str()` functions:
 
-```{r}
+```{r, cache=TRUE}
 head(df)
 str(df)
 ```
@@ -75,14 +75,14 @@ Economic consequences:
 
 We will select these variables from the original dataset in addition to `EVTYPE` for obvious reasons, and `STATE__` in order to analyse the spatial variation of population health and economic consequences:
 
-```{r}
+```{r, cache=TRUE}
 df_filtered <- select(df, EVTYPE, STATE__, FATALITIES, INJURIES, 
                       PROPDMG, PROPDMGEXP, CROPDMG, CROPDMGEXP)
 ```
 
 The proportion of missing values in the dataframe is first determined for the relevant variables:
 
-```{r}
+```{r, cache=TRUE}
 mean(is.na(df_filtered))
 ```
 
@@ -111,6 +111,7 @@ event <- gsub('.*SNOW.*', 'HEAVY SNOW', event, ignore.case=TRUE)
 event <- gsub('.*HURRICANE.*', 'HURRICANE/TYPHOON', event, ignore.case=TRUE)
 event <- gsub('.*TYPHOON.*', 'HURRICANE/TYPHOON', event, ignore.case=TRUE)
 event <- gsub('.*HEAT.*', 'HEAT', event, ignore.case=TRUE)
+event <- gsub('.*HOT.*', 'HEAT', event, ignore.case=TRUE)
 event <- gsub('.*WARM.*', 'HEAT', event, ignore.case=TRUE)
 event <- gsub('.*HIGH TEMP.*', 'HEAT', event, ignore.case=TRUE)
 event <- gsub('.*COLD.*', 'EXTREME COLD/WIND CHILL', event, ignore.case=TRUE)
@@ -127,11 +128,68 @@ event <- gsub('.*CURRENT.*', 'RIP CURRENT', event, ignore.case=TRUE)
 event <- gsub('.*DRY.*', 'DROUGHT', event, ignore.case=TRUE)
 event <- gsub('(?<!FREEZING )RAIN.*', 'HEAVY RAIN', event, ignore.case=TRUE, perl=TRUE)
 event <- gsub('.*RAIN.*', 'HEAVY RAIN', event, ignore.case=TRUE)
+event <- gsub('.*dust.*', 'DUST STORM', event, ignore.case=TRUE)
+#table(grep('tornado',event,ignore.case=TRUE,value=TRUE, perl=TRUE))
+#unique(event)
 
-table(grep('(?<!freezing )rain',event,ignore.case=TRUE,value=TRUE, perl=TRUE))
-unique(event)
+df_filtered$EVTYPE <- event
+```
+
+Having completed the cleaning of the data, we will split the dataset into two parts, one to determine the effect of these weather events on human health and the other two determine their effect on the economy.
+
+```{r}
+health <- df_filtered %>% 
+  select(EVTYPE, FATALITIES, INJURIES) %>%
+  group_by(EVTYPE) %>% 
+  summarise_all(funs(sum))
+
+fatalities <- health %>%
+  select(EVTYPE, FATALITIES) %>%
+  arrange(desc(FATALITIES)) %>%
+  top_n(10)
+
+injuries <- health %>%
+  select(EVTYPE, INJURIES) %>%
+  arrange(desc(INJURIES)) %>%
+  top_n(10)
+
+fatalities
+
+injuries
+```
+
+Next we can examine the variables `PROPDMGEXP` and `CROPDMGEXP`:
+
+```{r}
+unique(df_filtered$PROPDMGEXP)
+unique(df_filtered$CROPDMGEXP)
 ```
 
 ## Results
+
+We select the top 10 event types that contribute the most harm to population health.
+
+```{r}
+h1 <- ggplot(fatalities, aes(x=reorder(EVTYPE, FATALITIES), y=FATALITIES)) +
+  geom_bar(stat="identity") + theme(aspect.ratio=1.) + coord_flip() +
+  labs(x="Event Types", y="No. of Fatalities")
+h2 <- ggplot(injuries, aes(x=reorder(EVTYPE, INJURIES), y=INJURIES)) +
+  geom_bar(stat="identity") + theme(aspect.ratio=1.) + coord_flip() +
+  labs(x="Event Types", y="No. of Injuries")
+
+g1 <- ggplotGrob(h1)
+g2 <- ggplotGrob(h2)
+plottitle <- textGrob(
+  'Fig. 1: Top 10 events harmful to U.S. population health (1950-2011)', just='centre')
+
+g1$widths[4] <- unit(3,"null")
+g <- gtable_rbind(g1, g2, size='first')
+g <- gtable_add_rows(g, grobHeight(plottitle)+unit(2,"mm"), pos=0)
+g <- gtable_add_grob(g, plottitle, 1, 1, r=7)
+g
+g$heights
+grid.newpage()
+grid.draw(g)
+```
 
 ## Conclusion

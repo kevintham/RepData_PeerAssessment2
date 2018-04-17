@@ -38,7 +38,7 @@ if (!require("pacman")) install.packages("pacman")
 ```
 
 ```r
-pacman::p_load(knitr, dplyr, ggplot2, tidyr, hexbin, timeDate)
+pacman::p_load(knitr, dplyr, ggplot2, tidyr, hexbin, timeDate, grid, gridExtra, gtable)
 ```
 
 Next we download and unzip the data file to read in the dataset:
@@ -209,6 +209,7 @@ event <- gsub('.*SNOW.*', 'HEAVY SNOW', event, ignore.case=TRUE)
 event <- gsub('.*HURRICANE.*', 'HURRICANE/TYPHOON', event, ignore.case=TRUE)
 event <- gsub('.*TYPHOON.*', 'HURRICANE/TYPHOON', event, ignore.case=TRUE)
 event <- gsub('.*HEAT.*', 'HEAT', event, ignore.case=TRUE)
+event <- gsub('.*HOT.*', 'HEAT', event, ignore.case=TRUE)
 event <- gsub('.*WARM.*', 'HEAT', event, ignore.case=TRUE)
 event <- gsub('.*HIGH TEMP.*', 'HEAT', event, ignore.case=TRUE)
 event <- gsub('.*COLD.*', 'EXTREME COLD/WIND CHILL', event, ignore.case=TRUE)
@@ -225,200 +226,192 @@ event <- gsub('.*CURRENT.*', 'RIP CURRENT', event, ignore.case=TRUE)
 event <- gsub('.*DRY.*', 'DROUGHT', event, ignore.case=TRUE)
 event <- gsub('(?<!FREEZING )RAIN.*', 'HEAVY RAIN', event, ignore.case=TRUE, perl=TRUE)
 event <- gsub('.*RAIN.*', 'HEAVY RAIN', event, ignore.case=TRUE)
+event <- gsub('.*dust.*', 'DUST STORM', event, ignore.case=TRUE)
+#table(grep('tornado',event,ignore.case=TRUE,value=TRUE, perl=TRUE))
+#unique(event)
 
-table(grep('(?<!freezing )rain',event,ignore.case=TRUE,value=TRUE, perl=TRUE))
+df_filtered$EVTYPE <- event
+```
+
+Having completed the cleaning of the data, we will split the dataset into two parts, one to determine the effect of these weather events on human health and the other two determine their effect on the economy.
+
+
+```r
+health <- df_filtered %>% 
+  select(EVTYPE, FATALITIES, INJURIES) %>%
+  group_by(EVTYPE) %>% 
+  summarise_all(funs(sum))
+
+fatalities <- health %>%
+  select(EVTYPE, FATALITIES) %>%
+  arrange(desc(FATALITIES)) %>%
+  top_n(10)
 ```
 
 ```
-## 
-## HEAVY RAIN 
-##      12161
+## Selecting by FATALITIES
 ```
 
 ```r
-unique(event)
+injuries <- health %>%
+  select(EVTYPE, INJURIES) %>%
+  arrange(desc(INJURIES)) %>%
+  top_n(10)
 ```
 
 ```
-##   [1] "TORNADO"                        "THUNDERSTORM WIND"             
-##   [3] "HAIL"                           "HEAVY RAIN"                    
-##   [5] "HEAVY SNOW"                     "FLOOD"                         
-##   [7] "WINTER STORM"                   "HURRICANE/TYPHOON"             
-##   [9] "EXTREME COLD/WIND CHILL"        "LIGHTNING"                     
-##  [11] "DENSE FOG"                      "RIP CURRENT"                   
-##  [13] "HIGH WIND"                      "FUNNEL CLOUD"                  
-##  [15] "HEAT"                           "WIND"                          
-##  [17] "LIGHTING"                       "WALL CLOUD"                    
-##  [19] "WATERSPOUT"                     "BLIZZARD"                      
-##  [21] "WIND CHILL"                     "FREEZE"                        
-##  [23] "HIGH TIDES"                     "RECORD HIGH"                   
-##  [25] "ICE STORM"                      "RECORD LOW"                    
-##  [27] "LOW TEMPERATURE RECORD"         "AVALANCHE"                     
-##  [29] "MARINE MISHAP"                  "WIND CHILL/HIGH WIND"          
-##  [31] "HIGH SEAS"                      "SEVERE TURBULENCE"             
-##  [33] "WIND DAMAGE"                    "DUST STORM"                    
-##  [35] "APACHE COUNTY"                  "SLEET"                         
-##  [37] "DUST DEVIL"                     "WINTER STORM/HIGH WIND"        
-##  [39] "WINTER STORM/HIGH WINDS"        "GUSTY WINDS"                   
-##  [41] "STRONG WINDS"                   "HEAVY SURF"                    
-##  [43] "HEAVY PRECIPATATION"            "HIGH SURF"                     
-##  [45] "BLOWING DUST"                   "URBAN/SMALL"                   
-##  [47] "WILDFIRE"                       "HIGH"                          
-##  [49] "WINTER STORM HIGH WINDS"        "WINTER STORMS"                 
-##  [51] "MUDSLIDES"                      "WINDS"                         
-##  [53] "STRONG WIND"                    "URBAN AND SMALL"               
-##  [55] "ICE"                            "DOWNBURST"                     
-##  [57] "GUSTNADO AND"                   "DOWNBURST WINDS"               
-##  [59] "DROUGHT"                        "FREEZING DRIZZLE"              
-##  [61] "GLAZE"                          "UNSEASONABLY WET"              
-##  [63] "WINTRY MIX"                     "WINTER WEATHER"                
-##  [65] "NORMAL PRECIPITATION"           "STORM SURGE"                   
-##  [67] "TROPICAL STORM"                 "URBAN AND SMALL STREAM"        
-##  [69] "DAMAGING FREEZE"                "MUD SLIDE"                     
-##  [71] "LIGNTNING"                      "FROST"                         
-##  [73] "EXTREME WIND CHILLS"            "COOL AND WET"                  
-##  [75] "GLAZE ICE"                      "HIGH  WINDS"                   
-##  [77] "SMALL STREAM AND"               "MUD SLIDES"                    
-##  [79] "EXTREME WIND CHILL"             "EXCESSIVE WETNESS"             
-##  [81] "GRADIENT WINDS"                 "SLEET/ICE STORM"               
-##  [83] "ROTATING WALL CLOUD"            "LARGE WALL CLOUD"              
-##  [85] "GUSTNADO"                       "FOG"                           
-##  [87] "WIND STORM"                     "AGRICULTURAL FREEZE"           
-##  [89] "TUNDERSTORM WIND"               "COASTAL SURGE"                 
-##  [91] "ICE FLOES"                      "HIGH WAVES"                    
-##  [93] "LOW WIND CHILL"                 "URBAN/SMALL STREAM"            
-##  [95] "TORNDAO"                        "GLAZE/ICE STORM"               
-##  [97] "AVALANCE"                       "DUST STORM/HIGH WINDS"         
-##  [99] "ICE JAM"                        "FROST\\FREEZE"                 
-## [101] "HARD FREEZE"                    "BELOW NORMAL PRECIPITATION"    
-## [103] "RECORD TEMPERATURES"            "OTHER"                         
-## [105] "MUDSLIDE"                       "ICY ROADS"                     
-## [107] "HEAVY MIX"                      "DAM FAILURE"                   
-## [109] "THUDERSTORM WINDS"              "STORM FORCE WINDS"             
-## [111] "SOUTHEAST"                      "FREEZING DRIZZLE AND FREEZING" 
-## [113] "HEAVY PRECIPITATION"            "HIGH WATER"                    
-## [115] "WET WEATHER"                    "BEACH EROSIN"                  
-## [117] "LOW TEMPERATURE"                "HYPOTHERMIA"                   
-## [119] "THUNERSTORM WINDS"              "MUD/ROCK SLIDE"                
-## [121] "RAPIDLY RISING WATER"           "EARLY FREEZE"                  
-## [123] "ICE/STRONG WINDS"               "EXTREME WIND CHILL/BLOWING SNO"
-## [125] "EARLY FROST"                    "LANDSLIDE"                     
-## [127] "EXCESSIVE"                      "HEAVY SEAS"                    
-## [129] "DUSTSTORM"                      "?"                             
-## [131] "HOT PATTERN"                    "WINTER MIX"                    
-## [133] "EXCESSIVE PRECIPITATION"        "MILD PATTERN"                  
-## [135] "LANDSLIDES"                     "HEAVY SHOWERS"                 
-## [137] "SAHARAN DUST"                   "HEAVY SHOWER"                  
-## [139] "HEAVY SWELLS"                   "URBAN SMALL"                   
-## [141] "SMALL STREAM"                   "EXTREME WINDCHILL"             
-## [143] "URBAN/SML STREAM FLD"           "Other"                         
-## [145] "Temperature record"             "ROUGH SURF"                    
-## [147] "Wind"                           "Heavy Surf"                    
-## [149] "Dust Devil"                     "Wind Damage"                   
-## [151] "Marine Accident"                "Freeze"                        
-## [153] "Strong Wind"                    "COASTAL STORM"                 
-## [155] "Wet Month"                      "Wet Year"                      
-## [157] "Damaging Freeze"                "Beach Erosion"                 
-## [159] "Icy Roads"                      "High Surf"                     
-## [161] "Early Frost"                    "Wintry Mix"                    
-## [163] "Ice Fog"                        "Landslump"                     
-## [165] "Coastal Storm"                  "Winter Weather"                
-## [167] "Strong Winds"                   "Strong winds"                  
-## [169] "Mudslide"                       "Glaze"                         
-## [171] "Freezing Fog"                   "Whirlwind"                     
-## [173] "Heavy Precipitation"            "Record temperature"            
-## [175] "Gusty Wind"                     "MIXED PRECIP"                  
-## [177] "Black Ice"                      "Mudslides"                     
-## [179] "Gradient wind"                  "Freezing Spray"                
-## [181] "Summary Jan 17"                 "Summary of March 14"           
-## [183] "Summary of March 23"            "Summary of March 24"           
-## [185] "Summary of April 3rd"           "Summary of April 12"           
-## [187] "Summary of April 13"            "Summary of April 21"           
-## [189] "Summary August 11"              "Summary of April 27"           
-## [191] "Summary of May 9-10"            "Summary of May 10"             
-## [193] "Summary of May 13"              "Summary of May 14"             
-## [195] "Summary of May 22 am"           "Summary of May 22 pm"          
-## [197] "Summary of May 26 am"           "Summary of May 26 pm"          
-## [199] "Metro Storm, May 26"            "Summary of May 31 am"          
-## [201] "Summary of May 31 pm"           "Summary of June 3"             
-## [203] "Summary of June 4"              "Summary June 5-6"              
-## [205] "Summary June 6"                 "Summary of June 11"            
-## [207] "Summary of June 12"             "Summary of June 13"            
-## [209] "Summary of June 15"             "Summary of June 16"            
-## [211] "Summary June 18-19"             "Summary of June 23"            
-## [213] "Summary of June 24"             "Summary of June 30"            
-## [215] "Summary of July 2"              "Summary of July 3"             
-## [217] "Summary of July 11"             "Summary of July 22"            
-## [219] "Summary July 23-24"             "Summary of July 26"            
-## [221] "Summary of July 29"             "Summary of August 1"           
-## [223] "Summary August 2-3"             "Summary August 7"              
-## [225] "Summary August 9"               "Summary August 10"             
-## [227] "Summary August 17"              "Summary August 21"             
-## [229] "Summary August 28"              "Summary September 4"           
-## [231] "Summary September 20"           "Summary September 23"          
-## [233] "Summary Sept. 25-26"            "Summary: Oct. 20-21"           
-## [235] "Summary: October 31"            "Summary: Nov. 6-7"             
-## [237] "Summary: Nov. 16"               "wet micoburst"                 
-## [239] "No Severe Weather"              "Summary of May 22"             
-## [241] "Summary of June 6"              "Summary August 4"              
-## [243] "Summary of June 10"             "Summary of June 18"            
-## [245] "Summary September 3"            "Summary: Sept. 18"             
-## [247] "Record Temperatures"            "Freezing Drizzle"              
-## [249] "Sml Stream Fld"                 "MUDSLIDE/LANDSLIDE"            
-## [251] "Saharan Dust"                   "Volcanic Ash"                  
-## [253] "Volcanic Ash Plume"             "NONE"                          
-## [255] "DAM BREAK"                      "BLACK ICE"                     
-## [257] "BLOW-OUT TIDES"                 "UNSEASONABLY COOL"             
-## [259] "Gusty Winds"                    "GUSTY WIND"                    
-## [261] "Wintry mix"                     "Frost"                         
-## [263] "Frost/Freeze"                   "URBAN/SML STREAM FLDG"         
-## [265] "STRONG WIND GUST"               "LATE FREEZE"                   
-## [267] "BLOW-OUT TIDE"                  "Hypothermia/Exposure"          
-## [269] "HYPOTHERMIA/EXPOSURE"           "Mixed Precipitation"           
-## [271] "Record High"                    "COASTALSTORM"                  
-## [273] "Gusty winds"                    "SUMMARY OF MARCH 24-25"        
-## [275] "SUMMARY OF MARCH 27"            "SUMMARY OF MARCH 29"           
-## [277] "GRADIENT WIND"                  "gradient wind"                 
-## [279] "Freezing drizzle"               "URBAN/SMALL STRM FLDG"         
-## [281] "Heavy surf and wind"            "HIGH SWELLS"                   
-## [283] "HIGH  SWELLS"                   "VOLCANIC ASH"                  
-## [285] "BEACH EROSION"                  "WINTERY MIX"                   
-## [287] "HOT SPELL"                      "UNSEASONABLY HOT"              
-## [289] "WAKE LOW WIND"                  "COASTAL EROSION"               
-## [291] "BITTER WIND CHILL"              "BITTER WIND CHILL TEMPERATURES"
-## [293] "SEICHE"                         "HYPERTHERMIA/EXPOSURE"         
-## [295] "ROCK SLIDE"                     "ICE PELLETS"                   
-## [297] "PATCHY DENSE FOG"               "RECORD COOL"                   
-## [299] "HOT WEATHER"                    "RECORD TEMPERATURE"            
-## [301] "TROPICAL DEPRESSION"            "VOLCANIC ERUPTION"             
-## [303] "COOL SPELL"                     "WIND ADVISORY"                 
-## [305] "FIRST FROST"                    "VOG"                           
-## [307] "MONTHLY PRECIPITATION"          "MONTHLY TEMPERATURE"           
-## [309] "EXTREME WINDCHILL TEMPERATURES" "MIXED PRECIPITATION"           
-## [311] "REMNANTS OF FLOYD"              "FREEZING FOG"                  
-## [313] "DRIEST MONTH"                   "WIND AND WAVE"                 
-## [315] " WIND"                          "RECORD PRECIPITATION"          
-## [317] "ICE ROADS"                      "ROUGH SEAS"                    
-## [319] "UNSEASONABLY COOL & WET"        "NON-SEVERE WIND DAMAGE"        
-## [321] "LANDSLUMP"                      "WIND GUSTS"                    
-## [323] "UNSEASONAL LOW TEMP"            "HIGH SURF ADVISORY"            
-## [325] "GUSTY LAKE WIND"                "WINTER WEATHER MIX"            
-## [327] "RED FLAG CRITERIA"              "WND"                           
-## [329] "SMOKE"                          "EXTREMELY WET"                 
-## [331] "ROGUE WAVE"                     "DUST DEVEL"                    
-## [333] "PATCHY ICE"                     "NORTHERN LIGHTS"               
-## [335] "   HIGH SURF ADVISORY"          "HAZARDOUS SURF"                
-## [337] "FROST/FREEZE"                   "WINTER WEATHER/MIX"            
-## [339] "ASTRONOMICAL HIGH TIDE"         "WHIRLWIND"                     
-## [341] "ABNORMALLY WET"                 "ICE ON ROAD"                   
-## [343] "DROWNING"                       "HIGH SURF ADVISORIES"          
-## [345] "HEAVY SURF/HIGH SURF"           "SLEET STORM"                   
-## [347] "STORM SURGE/TIDE"               "MARINE HIGH WIND"              
-## [349] "TSUNAMI"                        "DENSE SMOKE"                   
-## [351] "MARINE STRONG WIND"             "ASTRONOMICAL LOW TIDE"         
-## [353] "VOLCANIC ASHFALL"
+## Selecting by INJURIES
+```
+
+```r
+fatalities
+```
+
+```
+## # A tibble: 10 x 2
+##    EVTYPE                  FATALITIES
+##    <chr>                        <dbl>
+##  1 TORNADO                       5633
+##  2 HEAT                          3178
+##  3 FLOOD                         1525
+##  4 LIGHTNING                      817
+##  5 THUNDERSTORM WIND              759
+##  6 RIP CURRENT                    577
+##  7 EXTREME COLD/WIND CHILL        436
+##  8 HIGH WIND                      293
+##  9 AVALANCHE                      224
+## 10 WINTER STORM                   206
+```
+
+```r
+injuries
+```
+
+```
+## # A tibble: 10 x 2
+##    EVTYPE            INJURIES
+##    <chr>                <dbl>
+##  1 TORNADO              91364
+##  2 THUNDERSTORM WIND     9573
+##  3 HEAT                  9243
+##  4 FLOOD                 8604
+##  5 LIGHTNING             5231
+##  6 ICE STORM             1975
+##  7 WILDFIRE              1608
+##  8 HIGH WIND             1471
+##  9 HAIL                  1371
+## 10 HURRICANE/TYPHOON     1333
+```
+
+Next we can examine the variables `PROPDMGEXP` and `CROPDMGEXP`:
+
+
+```r
+unique(df_filtered$PROPDMGEXP)
+```
+
+```
+##  [1] K M   B m + 0 5 6 ? 4 2 3 h 7 H - 1 8
+## Levels:  - ? + 0 1 2 3 4 5 6 7 8 B h H K m M
+```
+
+```r
+unique(df_filtered$CROPDMGEXP)
+```
+
+```
+## [1]   M K m B ? 0 k 2
+## Levels:  ? 0 2 B k K m M
 ```
 
 ## Results
+
+We select the top 10 event types that contribute the most harm to population health.
+
+
+```r
+h1 <- ggplot(fatalities, aes(x=reorder(EVTYPE, FATALITIES), y=FATALITIES)) +
+  geom_bar(stat="identity") + theme(aspect.ratio=1.) + coord_flip() +
+  labs(x="Event Types", y="No. of Fatalities")
+h2 <- ggplot(injuries, aes(x=reorder(EVTYPE, INJURIES), y=INJURIES)) +
+  geom_bar(stat="identity") + theme(aspect.ratio=1.) + coord_flip() +
+  labs(x="Event Types", y="No. of Injuries")
+
+g1 <- ggplotGrob(h1)
+g2 <- ggplotGrob(h2)
+plottitle <- textGrob(
+  'Fig. 1: Top 10 events harmful to U.S. population health (1950-2011)', just='centre')
+
+g1$widths[4] <- unit(3,"null")
+g <- gtable_rbind(g1, g2, size='first')
+g <- gtable_add_rows(g, grobHeight(plottitle)+unit(2,"mm"), pos=0)
+g <- gtable_add_grob(g, plottitle, 1, 1, r=7)
+g
+```
+
+```
+## TableGrob (21 x 7) "layout": 35 grobs
+##     z         cells       name                                  grob
+## 1   0 ( 2-11, 1- 7) background        rect[plot.background..rect.50]
+## 2   5 ( 6- 6, 3- 3)     spacer                        zeroGrob[NULL]
+## 3   7 ( 7- 7, 3- 3)     axis-l    absoluteGrob[GRID.absoluteGrob.45]
+## 4   3 ( 8- 8, 3- 3)     spacer                        zeroGrob[NULL]
+## 5   6 ( 6- 6, 4- 4)     axis-t                        zeroGrob[NULL]
+## 6   1 ( 7- 7, 4- 4)      panel               gTree[panel-1.gTree.25]
+## 7   9 ( 8- 8, 4- 4)     axis-b    absoluteGrob[GRID.absoluteGrob.38]
+## 8   4 ( 6- 6, 5- 5)     spacer                        zeroGrob[NULL]
+## 9   8 ( 7- 7, 5- 5)     axis-r                        zeroGrob[NULL]
+## 10  2 ( 8- 8, 5- 5)     spacer                        zeroGrob[NULL]
+## 11 10 ( 5- 5, 4- 4)     xlab-t                        zeroGrob[NULL]
+## 12 11 ( 9- 9, 4- 4)     xlab-b titleGrob[axis.title.x..titleGrob.31]
+## 13 12 ( 7- 7, 2- 2)     ylab-l titleGrob[axis.title.y..titleGrob.28]
+## 14 13 ( 7- 7, 6- 6)     ylab-r                        zeroGrob[NULL]
+## 15 14 ( 4- 4, 4- 4)   subtitle  zeroGrob[plot.subtitle..zeroGrob.47]
+## 16 15 ( 3- 3, 4- 4)      title     zeroGrob[plot.title..zeroGrob.46]
+## 17 16 (10-10, 4- 4)    caption   zeroGrob[plot.caption..zeroGrob.48]
+## 18  0 (12-21, 1- 7) background        rect[plot.background..rect.90]
+## 19  5 (16-16, 3- 3)     spacer                        zeroGrob[NULL]
+## 20  7 (17-17, 3- 3)     axis-l    absoluteGrob[GRID.absoluteGrob.85]
+## 21  3 (18-18, 3- 3)     spacer                        zeroGrob[NULL]
+## 22  6 (16-16, 4- 4)     axis-t                        zeroGrob[NULL]
+## 23  1 (17-17, 4- 4)      panel               gTree[panel-1.gTree.65]
+## 24  9 (18-18, 4- 4)     axis-b    absoluteGrob[GRID.absoluteGrob.78]
+## 25  4 (16-16, 5- 5)     spacer                        zeroGrob[NULL]
+## 26  8 (17-17, 5- 5)     axis-r                        zeroGrob[NULL]
+## 27  2 (18-18, 5- 5)     spacer                        zeroGrob[NULL]
+## 28 10 (15-15, 4- 4)     xlab-t                        zeroGrob[NULL]
+## 29 11 (19-19, 4- 4)     xlab-b titleGrob[axis.title.x..titleGrob.71]
+## 30 12 (17-17, 2- 2)     ylab-l titleGrob[axis.title.y..titleGrob.68]
+## 31 13 (17-17, 6- 6)     ylab-r                        zeroGrob[NULL]
+## 32 14 (14-14, 4- 4)   subtitle  zeroGrob[plot.subtitle..zeroGrob.87]
+## 33 15 (13-13, 4- 4)      title     zeroGrob[plot.title..zeroGrob.86]
+## 34 16 (20-20, 4- 4)    caption   zeroGrob[plot.caption..zeroGrob.88]
+## 35 17 ( 1- 1, 1- 7)     layout                    text[GRID.text.91]
+```
+
+```r
+g$heights
+```
+
+```
+##  [1] 1grobheight+2mm          5.5pt                   
+##  [3] 0cm                      0cm                     
+##  [5] 0cm                      0cm                     
+##  [7] 1null                    sum(2.75pt, 1grobheight)
+##  [9] 1grobheight              0cm                     
+## [11] 5.5pt                    5.5pt                   
+## [13] 0cm                      0cm                     
+## [15] 0cm                      0cm                     
+## [17] 1null                    sum(2.75pt, 1grobheight)
+## [19] 1grobheight              0cm                     
+## [21] 5.5pt
+```
+
+```r
+grid.newpage()
+grid.draw(g)
+```
+
+![](PA2_storm_files/figure-html/unnamed-chunk-10-1.png)<!-- -->
 
 ## Conclusion
