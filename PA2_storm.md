@@ -1,7 +1,7 @@
 ---
-title: 'Reproducible Research: Peer Assessment 2'
+title: 'Impact of Severe Weather Events on U.S. Population Health and Economy'
 author: "Kevin Tham"
-date: "April 12, 2018"
+date: "April 18, 2018"
 output:
   html_document:
     keep_md: true
@@ -22,7 +22,7 @@ We address the following questions through analysis of the U.S. National Oceanic
 1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
 2. Across the United States, which types of events have the greatest economic consequences?
 
-
+The important variables from the dataset are picked out and cleaned, and from there the top 10 weather events impacting population health and economy are picked out. It is deduced from the results that tornadoes have the greatest impact on population health while flooding has overall the largest impact on the economy. 
 
 ## Data Processing
 
@@ -31,13 +31,6 @@ First, we load the required packages and install them first if they are not avai
 
 ```r
 if (!require("pacman")) install.packages("pacman")
-```
-
-```
-## Loading required package: pacman
-```
-
-```r
 pacman::p_load(knitr, dplyr, ggplot2, tidyr, hexbin, timeDate, grid, gridExtra, gtable)
 ```
 
@@ -184,14 +177,14 @@ mean(is.na(df_filtered))
 
 Surprisingly there is a complete absence of missing variables.
 
-Next we examine the variable `EVTYPE`:
+By examining the variable `EVTYPE` (output supressed),
 
 
 ```r
 unique(df_filtered$EVTYPE)
 ```
 
-It is clear that there are many duplicates, errors and variants present in the variable `EVTYPE`. Therefore we will proceed by cleaning up this variable, using regular expressions to substitute variable names with the correct variable.
+it is clear that there are many duplicates, errors and variants present in the variable `EVTYPE`. Therefore we will proceed by cleaning up this variable, using regular expressions to substitute variable names with the correct variable.
 
 
 ```r
@@ -275,7 +268,7 @@ unique(economic$CROPDMGEXP)
 ## Levels:  ? 0 2 B k K m M
 ```
 
-The variables `PROPDMGEXP` and `CROPDMGEXP` denote the exponent that is meant to be multiplied with `PROPDMG` and `CROPDMG` respectively in order to obtain the actual values of property and crop damag. Therefore in order to proceed it is required to transform the values under `PROPDMGEXP` and `CROPDMGEXP` to their actual numerical values.
+The variables `PROPDMGEXP` and `CROPDMGEXP` denote the exponent (hundreds, thousands, millions etc.) that is meant to be multiplied with `PROPDMG` and `CROPDMG` respectively in order to obtain the actual values of property and crop damage. Therefore in order to proceed it is required to transform the values under `PROPDMGEXP` and `CROPDMGEXP` to their actual numerical values.
 
 
 ```r
@@ -429,6 +422,8 @@ It is clear from Figure 1 that tornadoes in the U.S. have contributed to by far 
 
 ### Impact of Weather Events on US Economy
 
+Likewise, the top 10 event types that contribute the most damage to the U.S. economy are selected, and their impact on property and crop damage are shown below in Table 3, 4 and Figure 2.
+
 
 ```r
 propdmg_table <- tableGrob(propdmg, row=NULL, 
@@ -508,4 +503,4 @@ grid.draw(k)
 
 <img src="PA2_storm_files/figure-html/unnamed-chunk-18-1.png" style="display: block; margin: auto;" />
 
-## Conclusion
+We can see from Figure 2 that flooding has a large negative impact on the U.S. economy, causing the largest amount of property damage and second largest amount of crop damage. Meanwhile, drought is the largest factor contributing to crop damage. This is not surprising as crop growth has always been dependent on the weather and the presence of rain. It is interesting to note that tornadoes, while still causing significant property damage (third on the list), is not among the top ten weather events contributing to crop damage. 

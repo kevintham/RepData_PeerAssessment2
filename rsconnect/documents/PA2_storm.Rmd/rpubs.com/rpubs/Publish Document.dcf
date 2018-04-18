@@ -1,0 +1,10 @@
+name: Publish Document
+title:
+username:
+account: rpubs
+server: rpubs.com
+hostUrl: rpubs.com
+appId: https://api.rpubs.com/api/v1/document/380968/fbbf9d643382402888ef75774d985c8c
+bundleId: https://api.rpubs.com/api/v1/document/380968/fbbf9d643382402888ef75774d985c8c
+url: http://rpubs.com/kevintham/380968/edit
+when: 1524046165.52434
