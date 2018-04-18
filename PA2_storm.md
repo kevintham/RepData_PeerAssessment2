@@ -17,7 +17,7 @@ This project involves exploring the U.S. National Oceanic and Atmospheric Admini
 
 ## Synopsis
 
-We address the following questions through analysis of the NOAA Storm Database:
+We address the following questions through analysis of the U.S. National Oceanic and Atmospheric Administration (NOAA) Storm Database:
 
 1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
 2. Across the United States, which types of events have the greatest economic consequences?
@@ -246,21 +246,11 @@ fatalities <- health %>%
   select(EVTYPE, FATALITIES) %>%
   arrange(desc(FATALITIES)) %>%
   top_n(10)
-```
 
-```
-## Selecting by FATALITIES
-```
-
-```r
 injuries <- health %>%
   select(EVTYPE, INJURIES) %>%
   arrange(desc(INJURIES)) %>%
   top_n(10)
-```
-
-```
-## Selecting by INJURIES
 ```
 
 Next we can examine the variables `PROPDMGEXP` and `CROPDMGEXP`:
@@ -320,21 +310,11 @@ propdmg <- economic %>%
   select(EVTYPE, PROPDMG) %>%
   arrange(desc(PROPDMG)) %>%
   top_n(10)
-```
 
-```
-## Selecting by PROPDMG
-```
-
-```r
 cropdmg <- economic %>%
   select(EVTYPE, CROPDMG) %>%
   arrange(desc(CROPDMG)) %>%
   top_n(10)
-```
-
-```
-## Selecting by CROPDMG
 ```
 
 Finally we express the prop and property damages in the billions for easy viewing:
@@ -349,15 +329,49 @@ With these steps complete, we are ready to present our results.
 
 ## Results
 
-We select the top 10 event types that contribute the most harm to population health.
+### Impact of Weather Events on US Population Health
+
+We select the top 10 event types that contribute the most harm to population health, and show their impact on the number of injuries and fatalities below in Table 1, 2 and Figure 1.
                        
 
 ```r
+# function to return index of all column grobs
+find_column <- function(table, col, name="core-fg") {
+  l <- table$layout
+  which(l$l==col & l$name==name)
+}
+
+# function to justify column left or right
+justcol <- function(textgroblist, hjust, x) {
+  i = 0
+  for (textgrob in textgroblist) {
+    i = i + 1
+    textgroblist[[i]]$hjust <- hjust
+    textgroblist[[i]]$x <- unit(x, 'npc')
+  }
+  textgroblist
+}
+
 ttheme <- ttheme_default(core=list(bg_params=list(col=NA)), 
                          colhead=list(bg_params=list(col=NA)))
 
 fat_table <- tableGrob(fatalities, row=NULL, cols=c('Weather Event', 'No. of Fatalities'),
                                                     theme=ttheme)
+
+fat_table$widths <- unit(rep(1/ncol(fat_table), ncol(fat_table)), "npc")
+
+row1_ind <- c(find_column(fat_table, 1), find_column(fat_table, 1, name='colhead-fg'))
+row2_ind <- c(find_column(fat_table, 2), find_column(fat_table, 2, name='colhead-fg'))
+
+fat_table$grobs[row1_ind] <- justcol(fat_table$grobs[row1_ind], 0, 0.02)
+fat_table$grobs[row2_ind] <- justcol(fat_table$grobs[row2_ind], 1, 0.95)
+
+plottitle <- textGrob(
+  'Table. 1: Top 10 events causing the most U.S. fatalities (1950-2011)', just='centre')
+width <- max(fat_table$layout$r)
+fat_table <- gtable_add_rows(fat_table, grobHeight(plottitle)+unit(2,"mm"), pos=0)
+fat_table <- gtable_add_grob(fat_table, plottitle, 1, 1, r=width)
+
 grid.draw(fat_table)
 ```
 
@@ -368,6 +382,19 @@ grid.draw(fat_table)
 inj_table <- tableGrob(injuries, row=NULL, cols=c('Weather Event', 'No. of Injuries'),
                        theme=ttheme)
 
+inj_table$widths <- unit(rep(1/ncol(inj_table), ncol(inj_table)), "npc")
+
+row1_ind <- c(find_column(inj_table, 1), find_column(inj_table, 1, name='colhead-fg'))
+row2_ind <- c(find_column(inj_table, 2), find_column(inj_table, 2, name='colhead-fg'))
+
+inj_table$grobs[row1_ind] <- justcol(inj_table$grobs[row1_ind], 0, 0.02)
+inj_table$grobs[row2_ind] <- justcol(inj_table$grobs[row2_ind], 1, 0.95)
+
+plottitle <- textGrob(
+  'Table. 2: Top 10 events causing the most U.S. injuries (1950-2011)', just='centre')
+width <- max(inj_table$layout$r)
+inj_table <- gtable_add_rows(inj_table, grobHeight(plottitle)+unit(2,"mm"), pos=0)
+inj_table <- gtable_add_grob(inj_table, plottitle, 1, 1, r=width)
 grid.draw(inj_table)
 ```
 
@@ -398,14 +425,32 @@ grid.draw(g)
 
 <img src="PA2_storm_files/figure-html/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
 
+It is clear from Figure 1 that tornadoes in the U.S. have contributed to by far the greatest numbers of both injuries and fatalities over the period of 1950-2011. Extreme heat events also have a big impact on the U.S. population, contributing to the second highest number of fatalities and third highest number of injuries. 
+
+### Impact of Weather Events on US Economy
+
 
 ```r
-ttheme <- ttheme_default(core=list(bg_params=list(col=NA)), 
-                         colhead=list(bg_params=list(col=NA)))
-
 propdmg_table <- tableGrob(propdmg, row=NULL, 
                            cols=c('Weather Event', 'Property Damage (Billion USD)'), 
                            theme=ttheme)
+
+propdmg_table$widths <- unit(rep(1/ncol(propdmg_table), ncol(propdmg_table)), "npc")
+
+row1_ind <- c(find_column(propdmg_table, 1), find_column(propdmg_table, 1,
+                                                         name='colhead-fg'))
+row2_ind <- c(find_column(propdmg_table, 2), find_column(propdmg_table, 2, 
+                                                         name='colhead-fg'))
+
+propdmg_table$grobs[row1_ind] <- justcol(propdmg_table$grobs[row1_ind], 0, 0.02)
+propdmg_table$grobs[row2_ind] <- justcol(propdmg_table$grobs[row2_ind], 1, 0.95)
+
+plottitle <- textGrob(
+  'Table. 3: Top 10 events causing the most US property damage (1950-2011)', just='centre')
+width <- max(propdmg_table$layout$r)
+propdmg_table <- gtable_add_rows(propdmg_table, grobHeight(plottitle)+unit(2,"mm"), pos=0)
+propdmg_table <- gtable_add_grob(propdmg_table, plottitle, 1, 1, r=width)
+
 grid.draw(propdmg_table)
 ```
 
@@ -416,6 +461,23 @@ grid.draw(propdmg_table)
 cropdmg_table <- tableGrob(cropdmg, row=NULL, 
                        cols=c('Weather Event', 'Crop Damage (Billion USD)'),
                        theme=ttheme)
+
+cropdmg_table$widths <- unit(rep(1/ncol(cropdmg_table), ncol(cropdmg_table)), "npc")
+
+row1_ind <- c(find_column(cropdmg_table, 1), find_column(cropdmg_table, 1,
+                                                         name='colhead-fg'))
+row2_ind <- c(find_column(cropdmg_table, 2), find_column(cropdmg_table, 2, 
+                                                         name='colhead-fg'))
+
+cropdmg_table$grobs[row1_ind] <- justcol(cropdmg_table$grobs[row1_ind], 0, 0.02)
+cropdmg_table$grobs[row2_ind] <- justcol(cropdmg_table$grobs[row2_ind], 1, 0.95)
+
+plottitle <- textGrob(
+  'Table. 4: Top 10 events causing the most US crop damage (1950-2011)', just='centre')
+width <- max(cropdmg_table$layout$r)
+cropdmg_table <- gtable_add_rows(cropdmg_table, grobHeight(plottitle)+unit(2,"mm"), pos=0)
+cropdmg_table <- gtable_add_grob(cropdmg_table, plottitle, 1, 1, r=width)
+
 grid.draw(cropdmg_table)
 ```
 
